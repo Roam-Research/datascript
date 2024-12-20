@@ -1,17 +1,17 @@
 (ns datascript.test.core
   (:require
-    [#?(:cljs cljs.reader :cljd cljd.reader :clj clojure.edn) :as edn]
-    #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
-       :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
-       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-    [clojure.string :as str]
-    #?(:cljd [wevre.transit-cljd :as transit]
-       :clj  [cognitect.transit :as transit])
-    [datascript.core :as d]
-    [datascript.impl.entity :as de]
-    [datascript.db :as db #?@(:cljs [:refer-macros [defrecord-updatable]]
-                              :clj  [:refer [defrecord-updatable]])]
-    #?(:cljs [datascript.test.cljs])))
+   [#?(:cljs cljs.reader :cljd cljd.reader :clj clojure.edn) :as edn]
+   #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
+      :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
+      :clj  [clojure.test :as t :refer        [is are deftest testing]])
+   [clojure.string :as str]
+   #?(:cljd [wevre.transit-cljd :as transit]
+      :default [cognitect.transit :as transit])
+   [datascript.core :as d]
+   [datascript.impl.entity :as de]
+   [datascript.db :as db #?@(:cljs [:refer-macros [defrecord-updatable]]
+                             :clj  [:refer [defrecord-updatable]])]
+   #?(:cljs [datascript.test.cljs])))
 
 #?(:cljs
    (enable-console-print!))
