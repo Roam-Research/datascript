@@ -6,6 +6,7 @@
       :clj  [clojure.test :as t :refer        [is are deftest testing]])
    [datascript.core :as d]
    [datascript.db :as db]
+   #?(:cljd [cljd.core :refer [ExceptionInfo]])
    [datascript.test.core :as tdc :refer [#?(:cljd thrown-msg?)]]))
 
 (t/use-fixtures :once tdc/no-namespace-maps)

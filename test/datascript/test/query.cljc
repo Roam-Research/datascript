@@ -5,21 +5,11 @@
       :clj  [clojure.test :as t :refer        [is are deftest testing]])
    [datascript.core :as d]
    [datascript.db :as db]
-   [datascript.test.core :as tdc]
+   [datascript.test.core :as tdc :refer [#?(:cljd thrown-msg?)]]
    #?(:cljd [cljd.core :refer [ExceptionInfo]]))
   #?(:cljd nil
      :clj
      (:import [clojure.lang ExceptionInfo])))
-
-#?(:cljd
-   (defmacro thrown-msg? [expected-msg & body]
-     `(try
-        ~@body
-        false
-        (catch Object e
-          (or (.contains (.toString e) ~expected-msg)
-            ; rethrow for now to have a telling exception
-            (throw e))))))
 
 (deftest test-joins
   (let [db (-> (d/empty-db)

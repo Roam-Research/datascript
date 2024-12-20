@@ -3,19 +3,10 @@
    #?(:cljd [cljd.test    :as t :refer        [is are deftest testing]]
       :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-    [datascript.core :as d]
-    [datascript.db :as db]
-    [datascript.test.core :as tdc]))
-
-#?(:cljd
-   (defmacro thrown-msg? [expected-msg & body]
-     `(try
-        ~@body
-        false
-        (catch Object e
-          (or (.contains (.toString e) ~expected-msg)
-            ; rethrow for now to have a telling exception
-            (throw e))))))
+   [datascript.core :as d]
+   [datascript.db :as db]
+   #?(:cljd [cljd.core :refer [ExceptionInfo]])
+   [datascript.test.core :as tdc :refer [#?(:cljd thrown-msg?)]]))
 
 (deftest test-with
   (let [db  (-> (d/empty-db {:aka {:db/cardinality :db.cardinality/many}})

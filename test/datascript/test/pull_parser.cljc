@@ -6,17 +6,8 @@
     [datascript.core :as d]
     [datascript.db :as db]
     [datascript.pull-parser :as dpp]
-    [datascript.test.core :as tdc]))
-
-#?(:cljd
-   (defmacro thrown-msg? [expected-msg & body]
-     `(try
-        ~@body
-        false
-        (catch Object e#
-          (or (.contains (or (.-message (identity e#)) (.toString e#)) ~expected-msg)
-            ; rethrow for now to have a telling exception
-            (throw e#))))))
+    #?(:cljd [cljd.core :refer [ExceptionInfo]])
+    [datascript.test.core :as tdc :refer [#?(:cljd thrown-msg?)]]))
 
 (def db (d/empty-db
           {:ref            {:db/valueType :db.type/ref}

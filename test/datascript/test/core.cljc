@@ -21,8 +21,8 @@
      `(try
         ~@body
         false
-        (catch Object e#
-          (or (.contains (or (.-message (identity e#)) (.toString e#)) ~expected-msg)
+        (catch dynamic ^ExceptionInfo e#
+          (or (.contains ^String (or (.-message ^ExceptionInfo e#) (.toString e#)) ~expected-msg)
               ;; rethrow for now to have a telling exception
               (throw e#))))))
 
@@ -93,12 +93,14 @@
 
 (defn transit-write [o type]
   #?(:cljd
-     (-> (case type
-           :json (transit/json)
-           :json-verbose (transit/json-verbose)
-           :msgpack (transit/msgpack))
-       .-encoder
-       (.convert o))
+     (let [json-enc (.-encoder (transit/json))
+           jsonv-enc (.-encoder (transit/json-verbose))
+           msgpack-enc (.-encoder (transit/msgpack))]
+       (condp = type
+         :json (.convert json-enc o)
+         :json-verbose (.convert jsonv-enc o)
+         :msgpack (.convert msgpack-enc o)
+         (.convert json-enc o)))
      :clj
      (with-open [os (java.io.ByteArrayOutputStream.)]
        (let [writer (transit/writer os type)]
@@ -115,12 +117,14 @@
 
 (defn transit-read [s type]
   #?(:cljd
-     (-> (case type
-           :json (transit/json)
-           :json-verbose (transit/json-verbose)
-           :msgpack (transit/msgpack))
-       .-decoder
-       (.convert s))
+     (let [json-dec (.-decoder (transit/json))
+           jsonv-dec (.-decoder (transit/json-verbose))
+           msgpack-dec (.-decoder (transit/msgpack))]
+       (condp = type
+         :json (.convert json-dec s)
+         :json-verbose (.convert jsonv-dec s)
+         :msgpack (.convert msgpack-dec s)
+         (.convert json-dec s)))
      :clj
      (with-open [is (java.io.ByteArrayInputStream. s)]
        (transit/read (transit/reader is type)))
