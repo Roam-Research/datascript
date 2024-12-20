@@ -1,4 +1,5 @@
 (ns ^:no-doc datascript.query
+  (:refer-clojure :exclude [make-array])
   (:require
    [#?(:cljd cljd.reader :cljs cljs.reader :clj clojure.edn) :as edn]
    [clojure.set :as set]
@@ -337,8 +338,8 @@
     (if (== n 1)
       (getter-fn attrs (first common-attrs))
       (let [^#?(:cljd List :default objects) getters-arr #?(:cljd (into-array common-attrs)
-                                       :clj (into-array Object common-attrs)
-                                       :cljs (into-array common-attrs))]
+                                                            :clj (into-array Object common-attrs)
+                                                            :cljs (into-array common-attrs))]
         (loop [i 0]
           (if (< i n)
             (do
@@ -355,7 +356,7 @@
                        (-vec-owning arr)))))
                :clj
                (fn [tuple]
-                 (let [^objects arr (make-array Object n)]
+                 (let [^objects arr (clojure.core/make-array Object n)]
                    (loop [i 0]
                      (if (< i n)
                        (do

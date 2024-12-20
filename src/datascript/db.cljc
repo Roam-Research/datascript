@@ -1483,9 +1483,9 @@
         true      (assoc :hash (atom 0)))
       (if-some [removing (fsearch db [(.-e datom) (.-a datom) (.-v datom)])]
         (cond-> db
-          true      (update :eavt #?@(:cljd (disj removing) :default (set/conj removing cmp-datoms-eavt-quick)))
-          true      (update :aevt #?@(:cljd (disj removing) :default (set/conj removing cmp-datoms-aevt-quick)))
-          indexing? (update :avet #?@(:cljd (disj removing) :default (set/conj removing cmp-datoms-avet-quick)))
+          true      (update :eavt #?@(:cljd (disj removing) :default (set/disj removing cmp-datoms-eavt-quick)))
+          true      (update :aevt #?@(:cljd (disj removing) :default (set/disj removing cmp-datoms-aevt-quick)))
+          indexing? (update :avet #?@(:cljd (disj removing) :default (set/disj removing cmp-datoms-avet-quick)))
           true      (assoc :hash (atom 0)))
         db))))
 
