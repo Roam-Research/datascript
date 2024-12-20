@@ -63,24 +63,24 @@
     (loop [acc acc
            datoms datoms]
       #_(dart:core/print (pr-str :pull attr (map #(nth acc %) (range (count acc)))
-                         (first-seq datoms))
-        )
+                                 (first-seq datoms))
+                         )
       (cond+
-        :let [^Datom? datom (first-seq datoms)]
+       :let [#?(:cljd ^Datom? datom :default ^Datom datom) (first-seq datoms)]
 
-        (or (nil? datom) (not= (.-a datom) (.-name attr)))
-        [(#?(:cljd ->ResultFrame :default ResultFrame.) ((.-xform attr) (not-empty (persistent! acc))) (or datoms ()))]
+       (or (nil? datom) (not= (.-a datom) (.-name attr)))
+       [(#?(:cljd ->ResultFrame :default ResultFrame.) ((.-xform attr) (not-empty (persistent! acc))) (or datoms ()))]
 
-        ; got limit, skip rest of the datoms
-        (and (.-limit attr) (>= (count acc) (.-limit attr)))
-        (loop [datoms datoms]
-          (let [^Datom? datom (first-seq datoms)]
-            (if (or (nil? datom) (not= (.-a datom) (.-name attr)))
-              [(#?(:cljd ->ResultFrame :default ResultFrame.) (persistent! acc) (or datoms ()))]
-              (recur (next-seq datoms)))))
+; got limit, skip rest of the datoms
+       (and (.-limit attr) (>= (count acc) (.-limit attr)))
+       (loop [datoms datoms]
+         (let [#?(:cljd ^Datom? datom :default ^Datom datom) (first-seq datoms)]
+           (if (or (nil? datom) (not= (.-a datom) (.-name attr)))
+             [(#?(:cljd ->ResultFrame :default ResultFrame.) (persistent! acc) (or datoms ()))]
+             (recur (next-seq datoms)))))
 
-        :else
-        (recur (conj! acc (.-v datom)) (next-seq datoms)))))
+       :else
+       (recur (conj! acc (.-v datom)) (next-seq datoms)))))
 
   (-str [this]
     (str "MultivalAttrFrame<attr=" (attr-str attr) ">")))
@@ -89,170 +89,170 @@
   IFrame
   (-merge [this result]
     (#?(:cljd ->MultivalRefAttrFrame :default MultivalRefAttrFrame.)
-      seen
-      recursion-limits
-      (conj-some! acc (.-value ^ResultFrame result))
-      pattern
-      attr
-      (next-seq datoms)))
+     seen
+     recursion-limits
+     (conj-some! acc (.-value ^ResultFrame result))
+     pattern
+     attr
+     (next-seq datoms)))
 
   (-run [this context]
     (cond+
-      :let [^Datom? datom (first-seq datoms)]
+     :let [#?(:cljd ^Datom? datom :default ^Datom datom) (first-seq datoms)]
 
-      (or (nil? datom) (not= (.-a datom) (.-name attr)))
-      [(#?(:cljd ->ResultFrame :default ResultFrame.) ((.-xform attr) (not-empty (persistent! acc))) (or datoms ()))]
+     (or (nil? datom) (not= (.-a datom) (.-name attr)))
+     [(#?(:cljd ->ResultFrame :default ResultFrame.) ((.-xform attr) (not-empty (persistent! acc))) (or datoms ()))]
 
-      ; got limit, skip rest of the datoms
-      (and (.-limit attr) (>= (count acc) (.-limit attr)))
-      (loop [datoms datoms]
-        (let [^Datom? datom (first-seq datoms)]
-          (if (or (nil? datom) (not= (.-a datom) (.-name attr)))
-            [(#?(:cljd ->ResultFrame :default ResultFrame.)  (persistent! acc) (or datoms ()))]
-            (recur (next-seq datoms)))))
+; got limit, skip rest of the datoms
+     (and (.-limit attr) (>= (count acc) (.-limit attr)))
+     (loop [datoms datoms]
+       (let [#?(:cljd ^Datom? datom :default ^Datom datom) (first-seq datoms)]
+         (if (or (nil? datom) (not= (.-a datom) (.-name attr)))
+           [(#?(:cljd ->ResultFrame :default ResultFrame.)  (persistent! acc) (or datoms ()))]
+           (recur (next-seq datoms)))))
 
-      :let [id (if (.-reverse? attr) (.-e datom) (.-v datom))]
+     :let [id (if (.-reverse? attr) (.-e datom) (.-v datom))]
 
-      :else
-      [this (ref-frame context seen recursion-limits pattern attr id)]))
+     :else
+     [this (ref-frame context seen recursion-limits pattern attr id)]))
 
   (-str [this]
     (str "MultivalAttrFrame<attr=" (attr-str attr) ">")))
 
-(defrecord AttrsFrame [seen recursion-limits acc ^PullPattern pattern ^PullAttr? attr attrs datoms id]
+(defrecord AttrsFrame [seen recursion-limits acc ^PullPattern pattern #?(:cljd ^PullAttr? attr :default ^PullAttr attr) attrs datoms id]
   IFrame
   (-merge [this result]
     (#?(:cljd ->AttrsFrame :default AttrsFrame.)
-      seen
-      recursion-limits
-      (assoc-some! acc (.-as attr) (.-value ^ResultFrame result))
-      pattern
-      (first-seq attrs)
-      (next-seq attrs)
-      (not-empty (or (.-datoms ^ResultFrame result) (next-seq datoms)))
-      id))
+     seen
+     recursion-limits
+     (assoc-some! acc (.-as attr) (.-value ^ResultFrame result))
+     pattern
+     (first-seq attrs)
+     (next-seq attrs)
+     (not-empty (or (.-datoms ^ResultFrame result) (next-seq datoms)))
+     id))
   (-run [this context]
     (loop [acc    acc
-           ^PullAttr? attr   attr ; cljd bug except for the nil
+           #?(:cljd ^PullAttr? attr :default attr)   attr ; cljd bug except for the nil
            attrs  attrs
            datoms datoms]
       (cond+
-        ;; exit
-        (and (nil? datoms) (nil? attr))
-        [(->ReverseAttrsFrame seen recursion-limits acc pattern (first-seq (.-reverse-attrs pattern)) (next-seq (.-reverse-attrs pattern)) id)]
+       ;; exit
+       (and (nil? datoms) (nil? attr))
+       [(->ReverseAttrsFrame seen recursion-limits acc pattern (first-seq (.-reverse-attrs pattern)) (next-seq (.-reverse-attrs pattern)) id)]
 
-        ;; :db/id
-        (and (some? attr) (= :db/id (.-name attr)))
-        (recur (assoc! acc (.-as attr) ((.-xform attr) id)) (first-seq attrs) (next-seq attrs) datoms)
+       ;; :db/id
+       (and (some? attr) (= :db/id (.-name attr)))
+       (recur (assoc! acc (.-as attr) ((.-xform attr) id)) (first-seq attrs) (next-seq attrs) datoms)
 
-        :let [^Datom? datom (first-seq datoms)
-              cmp          (when (and datom attr)
-                             (compare (.-name attr) (.-a datom)))
-              attr-ahead?  (or (nil? attr) (and cmp (pos? cmp)))
-              datom-ahead? (or (nil? datom) (and cmp (neg? cmp)))]
+       :let [#?(:cljd ^Datom? datom :default ^Datom datom) (first-seq datoms)
+             cmp          (when (and datom attr)
+                            (compare (.-name attr) (.-a datom)))
+             attr-ahead?  (or (nil? attr) (and cmp (pos? cmp)))
+             datom-ahead? (or (nil? datom) (and cmp (neg? cmp)))]
 
-        ;; wildcard
-        (and (.-wildcard? pattern) (some? datom) attr-ahead?)
-        (let [datom-attr (lru/-get
-                           (.-pull-attrs (db/unfiltered-db (.-db ^Context context)))
-                           (.-a datom)
-                           #(dpp/parse-attr-name (.-db ^Context context) (.-a datom)))]
-          (recur acc datom-attr (when attr (conj-seq attrs attr)) datoms))
+       ;; wildcard
+       (and (.-wildcard? pattern) (some? datom) attr-ahead?)
+       (let [datom-attr (lru/-get
+                         (.-pull-attrs (db/unfiltered-db (.-db ^Context context)))
+                         (.-a datom)
+                         #(dpp/parse-attr-name (.-db ^Context context) (.-a datom)))]
+         (recur acc datom-attr (when attr (conj-seq attrs attr)) datoms))
 
-        ;; advance datom
-        attr-ahead?
-        (recur acc attr attrs (next-seq datoms))
+       ;; advance datom
+       attr-ahead?
+       (recur acc attr attrs (next-seq datoms))
 
-        :do (visit context :db.pull/attr id (.-name attr) nil)
+       :do (visit context :db.pull/attr id (.-name attr) nil)
 
-        ;; advance attr
-        (and datom-ahead? (nil? attr))
-        (recur acc (first-seq attrs) (next-seq attrs) datoms)
+       ;; advance attr
+       (and datom-ahead? (nil? attr))
+       (recur acc (first-seq attrs) (next-seq attrs) datoms)
 
-        ;; default
-        (and datom-ahead? (some? (#?(:cljd :default :clj .-default :cljs :default) attr)))
-        (recur (assoc! acc (.-as attr) (#?(:cljd :default :clj .-default :cljs :default) attr)) (first-seq attrs) (next-seq attrs) datoms)
+       ;; default
+       (and datom-ahead? (some? (#?(:cljd :default :clj .-default :cljs :default) attr)))
+       (recur (assoc! acc (.-as attr) (#?(:cljd :default :clj .-default :cljs :default) attr)) (first-seq attrs) (next-seq attrs) datoms)
 
-        ;; xform
-        datom-ahead?
-        (if-some [value ((.-xform attr) nil)]
-          (recur (assoc! acc (.-as attr) value) (first-seq attrs) (next-seq attrs) datoms)
-          (recur acc (first-seq attrs) (next-seq attrs) datoms))
+       ;; xform
+       datom-ahead?
+       (if-some [value ((.-xform attr) nil)]
+         (recur (assoc! acc (.-as attr) value) (first-seq attrs) (next-seq attrs) datoms)
+         (recur acc (first-seq attrs) (next-seq attrs) datoms))
 
-        ;; matching attr
-        (and (.-multival? attr) (.-ref? attr))
-        [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
-           seen recursion-limits acc pattern attr attrs datoms id)
-         (#?(:cljd ->MultivalRefAttrFrame :default MultivalRefAttrFrame.)
-           seen recursion-limits (transient []) pattern attr datoms)]
+       ;; matching attr
+       (and (.-multival? attr) (.-ref? attr))
+       [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
+         seen recursion-limits acc pattern attr attrs datoms id)
+        (#?(:cljd ->MultivalRefAttrFrame :default MultivalRefAttrFrame.)
+         seen recursion-limits (transient []) pattern attr datoms)]
 
-        (.-multival? attr)
-        [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
-           seen recursion-limits acc pattern attr attrs datoms id)
-         (#?(:cljd ->MultivalAttrFrame :default MultivalAttrFrame.)
-           (transient []) attr datoms)]
+       (.-multival? attr)
+       [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
+         seen recursion-limits acc pattern attr attrs datoms id)
+        (#?(:cljd ->MultivalAttrFrame :default MultivalAttrFrame.)
+         (transient []) attr datoms)]
 
-        (.-ref? attr)
-        [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
-           seen recursion-limits acc pattern attr attrs datoms id)
-         (ref-frame context seen recursion-limits pattern attr (.-v datom))]
+       (.-ref? attr)
+       [(#?(:cljd ->AttrsFrame :default AttrsFrame.)
+         seen recursion-limits acc pattern attr attrs datoms id)
+        (ref-frame context seen recursion-limits pattern attr (.-v datom))]
 
-        :else
-        (recur
-          (assoc! acc (.-as attr) ((.-xform attr) (.-v datom)))
-          (first-seq attrs)
-          (next-seq attrs)
-          (next-seq datoms)))))
+       :else
+       (recur
+        (assoc! acc (.-as attr) ((.-xform attr) (.-v datom)))
+        (first-seq attrs)
+        (next-seq attrs)
+        (next-seq datoms)))))
 
   (-str [this]
     (str "AttrsFrame<id=" id ", attr=" (attr-str attr) ", attrs=" (str/join " " (map attr-str attrs)) ">")))
 
-(defrecord ReverseAttrsFrame [seen recursion-limits acc pattern ^PullAttr? attr attrs id]
+(defrecord ReverseAttrsFrame [seen recursion-limits acc pattern #?(:cljd ^PullAttr? attr :default ^PullAttr attr) attrs id]
   IFrame
   (-merge [this result]
     (#?(:cljd ->ReverseAttrsFrame :default ReverseAttrsFrame.)
-      seen
-      recursion-limits
-      (assoc-some! acc (.-as attr) (.-value ^ResultFrame result))
-      pattern
-      (first-seq attrs)
-      (next-seq attrs)
-      id))
+     seen
+     recursion-limits
+     (assoc-some! acc (.-as attr) (.-value ^ResultFrame result))
+     pattern
+     (first-seq attrs)
+     (next-seq attrs)
+     id))
 
   (-run [this context]
     (loop [acc   acc
-           ^PullAttr? attr  attr ; cljd loop inference bug
+           #?(:cljd ^PullAttr? attr :default attr)  attr ; cljd loop inference bug
            attrs attrs]
       (cond+
-        (nil? attr)
-        [(#?(:cljd ->ResultFrame :default ResultFrame.)
-           (not-empty (persistent! acc)) nil)]
+       (nil? attr)
+       [(#?(:cljd ->ResultFrame :default ResultFrame.)
+         (not-empty (persistent! acc)) nil)]
 
-        :let [name   (.-name attr)
-              db     (.-db ^Context context)
-              datoms (if (instance? DB db)
-                       (#?(:cljd db/set-slice :default set/slice)
-                         (.-avet ^DB db) (db/datom db/e0 name id db/tx0) (db/datom db/emax name id db/txmax))
-                       (db/-search db [nil name id]))]
+       :let [name   (.-name attr)
+             db     (.-db ^Context context)
+             datoms (if (instance? DB db)
+                      (#?(:cljd db/set-slice :default set/slice)
+                       (.-avet ^DB db) (db/datom db/e0 name id db/tx0) (db/datom db/emax name id db/txmax))
+                      (db/-search db [nil name id]))]
 
-        :do (visit context :db.pull/reverse nil name id)
+       :do (visit context :db.pull/reverse nil name id)
 
-        (and (empty? datoms) (some? (#?(:cljd :default :clj .-default :cljs :default) attr)))
-        (recur (assoc! acc (.-as attr) (#?(:cljd :default :clj .-default :cljs :default) attr)) (first-seq attrs) (next-seq attrs))
+       (and (empty? datoms) (some? (#?(:cljd :default :clj .-default :cljs :default) attr)))
+       (recur (assoc! acc (.-as attr) (#?(:cljd :default :clj .-default :cljs :default) attr)) (first-seq attrs) (next-seq attrs))
 
-        (empty? datoms)
-        (recur acc (first-seq attrs) (next-seq attrs))
+       (empty? datoms)
+       (recur acc (first-seq attrs) (next-seq attrs))
 
-        (.-component? attr)
-        [(#?(:cljd ->ReverseAttrsFrame :default ReverseAttrsFrame.)
-           seen recursion-limits acc pattern attr attrs id)
-         (ref-frame context seen recursion-limits pattern attr (.-e ^Datom (first-seq datoms)))]
+       (.-component? attr)
+       [(#?(:cljd ->ReverseAttrsFrame :default ReverseAttrsFrame.)
+         seen recursion-limits acc pattern attr attrs id)
+        (ref-frame context seen recursion-limits pattern attr (.-e ^Datom (first-seq datoms)))]
 
-        :else
-        [(#?(:cljd ->ReverseAttrsFrame :default ReverseAttrsFrame.)
-           seen recursion-limits acc pattern attr attrs id)
-         (#?(:cljd ->MultivalRefAttrFrame :default MultivalRefAttrFrame.)
-           seen recursion-limits (transient []) pattern attr datoms)])))
+       :else
+       [(#?(:cljd ->ReverseAttrsFrame :default ReverseAttrsFrame.)
+         seen recursion-limits acc pattern attr attrs id)
+        (#?(:cljd ->MultivalRefAttrFrame :default MultivalRefAttrFrame.)
+         seen recursion-limits (transient []) pattern attr datoms)])))
 
   (-str [this]
     (str "ReverseAttrsFrame<id=" id ", attr=" (attr-str attr) ", attrs=" (str/join " " (map attr-str attrs)) ">")))
@@ -292,31 +292,31 @@
 (defn attrs-frame [^Context context seen recursion-limits ^PullPattern pattern id]
   (let [db (.-db context)
         datoms (cond+
-                 (and (.-wildcard? pattern) (instance? DB db))
-                 (#?(:cljd db/set-slice :default set/slice)
-                   (.-eavt ^DB db) (db/datom id nil nil db/tx0) (db/datom id nil nil db/txmax))
+                (and (.-wildcard? pattern) (instance? DB db))
+                (#?(:cljd db/set-slice :default set/slice)
+                 (.-eavt ^DB db) (db/datom id nil nil db/tx0) (db/datom id nil nil db/txmax))
 
-                 (.-wildcard? pattern)
-                 (db/-search db [id])
+                (.-wildcard? pattern)
+                (db/-search db [id])
 
-                 (nil? (.-first-attr pattern))
-                 nil
+                (nil? (.-first-attr pattern))
+                nil
 
-                 :let [from (.-name ^PullAttr (.-first-attr pattern))
-                       to   (.-name ^PullAttr (.-last-attr pattern))]
+                :let [from (.-name ^PullAttr (.-first-attr pattern))
+                      to   (.-name ^PullAttr (.-last-attr pattern))]
 
-                 (instance? DB db)
-                 (do
-                   #_(when (= 1500 (.-limit (.-first-attr pattern)))
-                     (dart:core/print (pr-str (db/datom id from nil db/tx0) (db/datom id to nil db/txmax)))
-                     (dart:core/print (pr-str
+                (instance? DB db)
+                (do
+                  #_(when (= 1500 (.-limit (.-first-attr pattern)))
+                      (dart:core/print (pr-str (db/datom id from nil db/tx0) (db/datom id to nil db/txmax)))
+                      (dart:core/print (pr-str
                                         (count (.-eavt ^DB db))
                                         'x
                                         (count (subseq (.-eavt ^DB db)
-                                                 >= (db/datom id from nil db/tx0)
-                                                 <= (db/datom id to nil db/txmax)))
+                                                       >= (db/datom id from nil db/tx0)
+                                                       <= (db/datom id to nil db/txmax)))
                                         (let [akas (for [{:flds [e a] :as d} (.-eavt ^DB db)
-                                                     :when (and (= e id) (= a from))]
+                                                         :when (and (= e id) (= a from))]
                                                      d)]
                                           [(count akas)
                                            (first akas) (second akas) (db/datom id from nil db/tx0)
@@ -326,37 +326,37 @@
                                            (db/cmp-datoms-eavt (last akas) (db/datom id from nil db/txmax))
                                            (db/cmp-datoms-eavt (db/datom id from nil db/txmax) (last akas))
                                            (count (subseq (.-eavt ^DB db)
-                                                    >= (first akas)
-                                                    <= (last akas)))])
+                                                          >= (first akas)
+                                                          <= (last akas)))])
                                         #_(count (for [{:flds [e a] :as d} (.-eavt ^DB db)
-                                                     :when (and (= e id) (= a from))]
-                                                 d))
+                                                       :when (and (= e id) (= a from))]
+                                                   d))
                                         #_(count (->> (.-eavt ^DB db)
-                                                 (drop-while #(neg? (db/cmp-datoms-eavt % (db/datom id from nil db/tx0))))
-                                                 (take-while #(neg? (db/cmp-datoms-eavt (db/datom id to nil db/txmax) %)))))
+                                                      (drop-while #(neg? (db/cmp-datoms-eavt % (db/datom id from nil db/tx0))))
+                                                      (take-while #(neg? (db/cmp-datoms-eavt (db/datom id to nil db/txmax) %)))))
                                         (count (#?(:cljd db/set-slice :default set/slice)
-                                                 (.-eavt ^DB db) (db/datom id from nil db/tx0) (db/datom id to nil db/txmax))))))
-                   (#?(:cljd db/set-slice :default set/slice)
-                     (.-eavt ^DB db) (db/datom id from db/MIN db/tx0) (db/datom id to db/MAX db/txmax)))
+                                                (.-eavt ^DB db) (db/datom id from nil db/tx0) (db/datom id to nil db/txmax))))))
+                  #?(:cljd (db/set-slice (.-eavt ^DB db) (db/datom id from db/MIN db/tx0) (db/datom id to db/MAX db/txmax))
+                     :default (set/slice (.-eavt ^DB db) (db/datom id from nil db/tx0) (db/datom id to nil db/txmax))))
 
-                 :else
-                 (->> (db/-seek-datoms db :eavt id nil nil nil))
-                   (take-while
-                     (fn [^Datom d]
-                       (and
-                         (= (.-e d) id)
-                         (<= (compare (.-a d) to) 0)))))]
+                :else
+                (->> (db/-seek-datoms db :eavt id nil nil nil))
+                (take-while
+                 (fn [^Datom d]
+                   (and
+                    (= (.-e d) id)
+                    (<= (compare (.-a d) to) 0)))))]
     (when (.-wildcard? pattern)
       (visit context :db.pull/wildcard id nil nil))
     (#?(:cljd ->AttrsFrame :default AttrsFrame.)
-      seen
-      recursion-limits
-      (transient {})
-      pattern
-      (first-seq (.-attrs pattern))
-      (next-seq (.-attrs pattern))
-      datoms
-      id)))
+     seen
+     recursion-limits
+     (transient {})
+     pattern
+     (first-seq (.-attrs pattern))
+     (next-seq (.-attrs pattern))
+     datoms
+     id)))
 
 (defn pull-impl [parsed-opts id]
   (let [{^Context context :context

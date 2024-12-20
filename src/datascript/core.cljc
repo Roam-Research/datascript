@@ -19,12 +19,11 @@
        [datascript.impl.entity Entity]
        [java.util UUID])))
 
-(def ^:const ^:no-doc tx0 db/tx0)
-
+(def #?(:cljd tx0 :default ^:const ^:no-doc tx0) db/tx0)
 
 ; Entities
 
-(def ^{:tag Entity?
+(def ^{:tag #?(:cljd Entity? :default Entity)
        :arglists '([db eid])
        :doc "Retrieves an entity by its id from database. Entities are lazy map-like structures to navigate DataScript database content.
 
@@ -89,7 +88,7 @@
   {:pre [(de/entity? entity)]}
   (.-db entity))
 
-(def ^{:tag Entity?
+(def ^{:tag #?(:cljd Entity? :default Entity)
        :arglists '([e])
        :doc "Forces all entity attributes to be eagerly fetched and cached. Only usable for debug output.
 
@@ -268,8 +267,8 @@
     (let [^FilteredDB fdb db
           orig-pred (.-pred fdb)
           orig-db   (.-unfiltered-db fdb)]
-      (->FilteredDB orig-db #(and (orig-pred %) (pred orig-db %)) (atom 0)))
-    (->FilteredDB db #(pred db %) (atom 0))))
+      (#?(:cljd ->FilteredDB :default FilteredDB.) orig-db #(and (orig-pred %) (pred orig-db %)) (atom 0)))
+    (#?(:cljd ->FilteredDB :default FilteredDB.) db #(pred db %) (atom 0))))
 
 
 ; Changing DB

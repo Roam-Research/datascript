@@ -1,13 +1,14 @@
 (ns ^:no-doc ^:lean-ns datascript.db
   (:require
-    #?(:cljs [goog.array :as garray])
-    [clojure.walk]
-    [clojure.data]
-    #?(:cljd nil :clj [datascript.inline :refer [update]])
-    [datascript.lru :as lru]
-    #?@(:cljd ()
-        :default [[me.tonsky.persistent-sorted-set :as set]
-                  [me.tonsky.persistent-sorted-set.arrays :as arrays]]))
+   #?(:cljs [goog.array :as garray])
+   [clojure.walk]
+   #?(:cljd [cljd.core :refer [HashRankedWideTreapSet]])
+   [clojure.data]
+   #?(:cljd nil :clj [datascript.inline :refer [update]])
+   [datascript.lru :as lru]
+   #?@(:cljd ()
+       :default [[me.tonsky.persistent-sorted-set :as set]
+                 [me.tonsky.persistent-sorted-set.arrays :as arrays]]))
   #?(:cljd nil :clj (:import clojure.lang.IFn$OOL))
   #?(:cljs (:require-macros [datascript.db :refer [case-tree combine-cmp cond+ declare+ defn+ defcomp defrecord-updatable int-compare raise validate-attr validate-val]]))
   (:refer-clojure :exclude [seqable? #?(:cljd nil :clj update)]))
@@ -22,11 +23,11 @@
      (def IllegalArgumentException js/Error)
      (def UnsupportedOperationException js/Error)))
 
-(def ^:const e0    0)
-(def ^:const tx0   0x20000000)
-(def ^:const emax  0x7FFFFFFF)
-(def ^:const txmax 0x7FFFFFFF)
-(def ^:const implicit-schema {:db/ident {:db/unique :db.unique/identity}})
+(def #?(:cljd e0 :default ^:const e0)    0)
+(def #?(:cljd tx0 :default ^:const tx0)   0x20000000)
+(def #?(:cljd emax :default ^:const emax)  0x7FFFFFFF)
+(def #?(:cljd txmax :default ^:const txmax) 0x7FFFFFFF)
+(def #?(:cljd implicit-schema :default ^:const implicit-schema) {:db/ident {:db/unique :db.unique/identity}})
 
 ;; ----------------------------------------------------------------------------
 
@@ -212,9 +213,9 @@
 
 ;; ----------------------------------------------------------------------------
 
-(declare+ ^#?(:cljs number :cljd int) hash-datom [d])
+(declare+ ^#?(:cljd int :default number) hash-datom [d])
 
-(declare+ ^#?(:cljs boolean :cljd bool) equiv-datom [d o])
+(declare+ ^#?(:cljd bool :default boolean) equiv-datom [d o])
 
 (declare+ seq-datom [d])
 
@@ -376,24 +377,24 @@
     not-found))
 
 (defn+ ^:private nth-datom
-  ([^Datom d ^#?(:cljd int :clj long) i]
-    (case i
-      0 (.-e d)
-      1 (.-a d)
-      2 (.-v d)
-      3 (datom-tx d)
-      4 (datom-added d)
-      #?(:cljd (throw (IndexError.withLength i 5))
-         :clj  (throw (IndexOutOfBoundsException.))
-         :cljs (throw (js/Error. (str "Datom/-nth: Index out of bounds: " i))))))
-  ([^Datom d ^#?(:cljd int :clj long) i not-found]
-    (case i
-      0 (.-e d)
-      1 (.-a d)
-      2 (.-v d)
-      3 (datom-tx d)
-      4 (datom-added d)
-        not-found)))
+  ([^Datom d ^#?(:cljd int :default long) i]
+   (case i
+     0 (.-e d)
+     1 (.-a d)
+     2 (.-v d)
+     3 (datom-tx d)
+     4 (datom-added d)
+     #?(:cljd (throw (IndexError.withLength i 5))
+        :clj  (throw (IndexOutOfBoundsException.))
+        :cljs (throw (js/Error. (str "Datom/-nth: Index out of bounds: " i))))))
+  ([^Datom d ^#?(:cljd int :default long) i not-found]
+   (case i
+     0 (.-e d)
+     1 (.-a d)
+     2 (.-v d)
+     3 (datom-tx d)
+     4 (datom-added d)
+     not-found)))
 
 (defn+ ^:private ^Datom assoc-datom [^Datom d k v]
   (case k
@@ -682,15 +683,15 @@
 
 ;; ----------------------------------------------------------------------------
 
-(declare+ ^#?(:cljs number :cljd int) hash-db [db])
+(declare+ ^#?(:cljd int :default number) hash-db [db])
 
-(declare+ ^#?(:cljs number :cljd int) hash-fdb [db])
+(declare+ ^#?(:cljd int :default number) hash-fdb [db])
 
-(declare+ ^#?(:cljs boolean :cljd bool) equiv-db [db other])
+(declare+ ^#?(:cljd bool :default boolean) equiv-db [db other])
 
 (declare+ restore-db [keys])
 
-(declare+ ^#?(:cljs boolean :cljd bool) indexing? [db attr])
+(declare+ ^#?(:cljd bool :default boolean) indexing? [db attr])
 
 #?(:cljs
    (declare+ pr-db [db w opts]))
@@ -1011,7 +1012,8 @@
     (filter (.-pred db) (-index-range (.-unfiltered-db db) attr start end))))
 
 (defn unfiltered-db ^DB [db]
-  (if (dart/is? db FilteredDB)
+  (if #?(:cljd    (dart/is? db FilteredDB)
+         :default (instance? FilteredDB db))
     (.-unfiltered-db ^FilteredDB db)
     db))
 
@@ -1219,14 +1221,14 @@
       (= (first xs) (first ys)) (recur (next xs) (next ys))
       :else false)))
 
-(defn+ ^:private ^#?(:cljs number :cljd int) hash-db [^DB db]
+(defn+ ^:private ^#?(:cljd int :default number) hash-db [^DB db]
   (let [h @(.-hash db)]
     (if (zero? h)
       (reset! (.-hash db) (combine-hashes (hash (.-schema db))
                                           (hash (.-eavt db))))
       h)))
 
-(defn+ ^:private ^#?(:cljs number :cljd int) hash-fdb [^FilteredDB db]
+(defn+ ^:private ^#?(:cljd int :default number) hash-fdb [^FilteredDB db]
   (let [h @(.-hash db)
         datoms (or (-datoms db :eavt nil nil nil nil) #{})]
     (if (zero? h)
@@ -1235,7 +1237,7 @@
                                             (hash-unordered-coll datoms))))
       h)))
 
-(defn+ ^:private ^#?(:cljs boolean :cljd bool) equiv-db [db other]
+(defn+ ^:private ^#?(:cljd bool :default boolean) equiv-db [db other]
   (and #?(:cljd (or (dart/is? other DB) (dart/is? other FilteredDB))
           :default (or (instance? DB other) (instance? FilteredDB other)))
        (= (-schema db) (-schema other))
@@ -1247,7 +1249,7 @@
      (.write sink ":schema ")
      (-print (-schema db) sink)
      (.write sink (str ", :datoms ["))
-     (loop [[d & more] (-datoms db :eavt nil nil nil nil)]
+     (loop [[^Datom d & more] (-datoms db :eavt nil nil nil nil)]
        (-print [(.-e d) (.-a d) (.-v d) (datom-tx d)] sink)
        (when more
          (.write sink " ")
@@ -1277,16 +1279,16 @@
 
      (defmethod print-method DB [db w] (pr-db db w))
      (defmethod print-method FilteredDB [db w] (pr-db db w))
-))
+     ))
 
 (defn db-from-reader [{:keys [schema datoms]}]
   (init-db (map (fn [[e a v tx]] (datom e a v tx)) datoms) schema {}))
 
 ;; ----------------------------------------------------------------------------
 
-(declare+ ^#?(:cljs number :cljd int) entid-strict [db eid])
+(declare+ ^#?(:cljd int :default number) entid-strict [db eid])
 
-(declare+ ^#?(:cljs boolean :cljd bool) ref? [db attr])
+(declare+ ^#?(:cljd bool :default boolean) ref? [db attr])
 
 (defn+ resolve-datom [db e a v t default-e default-tx]
   (when (some? a)
@@ -1308,10 +1310,12 @@
 (defn find-datom [db index c0 c1 c2 c3]
   (validate-indexed db index c0 c1 c2 c3)
   (let [set     (get db index)
-        cmp     #?(:cljd (.-cmpf set) ; TODO add protocol?
+        cmp     #?(:cljd (.-cmpf ^HashRankedWideTreapSet set) ; TODO add protocol?
                    :clj (.comparator ^clojure.lang.Sorted set) :cljs (.-comparator set))
-        from    (min-datom (components->pattern db index c0 c1 c2 c3 e0 tx0))
-        to      (max-datom (components->pattern db index c0 c1 c2 c3 emax txmax))
+        from    #?(:cljd (min-datom (components->pattern db index c0 c1 c2 c3 e0 tx0))
+                   :default (components->pattern db index c0 c1 c2 c3 e0 tx0))
+        to      #?(:cljd (max-datom (components->pattern db index c0 c1 c2 c3 emax txmax))
+                   :default (components->pattern db index c0 c1 c2 c3 emax txmax))
         datom   (first #?(:cljd (subseq set >= from)
                           :default (set/seek (seq set) from)))]
     (when (and (some? datom) (<= 0 (cmp to datom)))
@@ -1321,28 +1325,28 @@
 
 (defrecord TxReport [db-before db-after tx-data tempids tx-meta])
 
-(defn+ ^#?(:cljs boolean :cljd bool) is-attr? [db attr property]
+(defn+ ^#?(:cljd bool :default boolean) is-attr? [db attr property]
   (contains? (-attrs-by db property) attr))
 
-(defn+ ^#?(:cljs boolean :cljd bool) multival? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) multival? [db attr]
   (is-attr? db attr :db.cardinality/many))
 
-(defn+ ^#?(:cljs boolean :cljd bool) ref? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) ref? [db attr]
   (is-attr? db attr :db.type/ref))
 
-(defn+ ^#?(:cljs boolean :cljd bool) component? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) component? [db attr]
   (is-attr? db attr :db/isComponent))
 
-(defn+ ^#?(:cljs boolean :cljd bool) indexing? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) indexing? [db attr]
   (is-attr? db attr :db/index))
 
-(defn+ ^#?(:cljs boolean :cljd bool) tuple? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) tuple? [db attr]
   (is-attr? db attr :db.type/tuple))
 
-(defn+ ^#?(:cljs boolean :cljd bool) tuple-source? [db attr]
+(defn+ ^#?(:cljd bool :default boolean) tuple-source? [db attr]
   (is-attr? db attr :db/attrTuples))
 
-(defn+ ^#?(:cljs number :cljd int?) entid [db eid]
+(defn+ ^#?(:cljd int? :default number) entid [db eid]
   {:pre [(db? db)]}
   (cond
     (and (number? eid) (pos? eid))
@@ -1354,15 +1358,15 @@
     (let [[attr value] eid]
       (cond
         (not= (count eid) 2)
-          (raise "Lookup ref should contain 2 elements: " eid
-            {:error :lookup-ref/syntax, :entity-id eid})
+        (raise "Lookup ref should contain 2 elements: " eid
+               {:error :lookup-ref/syntax, :entity-id eid})
         (not (is-attr? db attr :db/unique))
-          (raise "Lookup ref attribute should be marked as :db/unique: " eid
-            {:error :lookup-ref/unique, :entity-id eid})
+        (raise "Lookup ref attribute should be marked as :db/unique: " eid
+               {:error :lookup-ref/unique, :entity-id eid})
         (nil? value)
-          nil
+        nil
         :else
-          (-> (-datoms db :avet attr value nil nil) first :e)))
+        (-> (-datoms db :avet attr value nil nil) first :e)))
 
     #?@(:cljs [(array? eid) (recur db (array-seq eid))])
 
@@ -1371,19 +1375,19 @@
 
     :else
     (raise "Expected number or lookup ref for entity id, got " eid
-      {:error :entity-id/syntax, :entity-id eid})))
+           {:error :entity-id/syntax, :entity-id eid})))
 
-(defn+ ^#?(:cljs boolean :cljd bool) numeric-eid-exists? [db eid]
+(defn+ ^#?(:cljd bool :default boolean) numeric-eid-exists? [db eid]
   (= eid (-> (-seek-datoms db :eavt eid nil nil nil) first :e)))
 
-(defn+ ^#?(:cljs number :cljd int) entid-strict [db eid]
+(defn+ ^#?(:cljd int :default number) entid-strict [db eid]
   (or
-    (entid db eid)
-    (raise "Nothing found for entity id " eid
-      {:error :entity-id/missing
-       :entity-id eid})))
+   (entid db eid)
+   (raise "Nothing found for entity id " eid
+          {:error :entity-id/missing
+           :entity-id eid})))
 
-(defn+ ^#?(:cljs number :cljd int?) entid-some [db eid]
+(defn+ ^#?(:cljd int? :default number) entid-some [db eid]
   (when (some? eid)
     (entid-strict db eid)))
 

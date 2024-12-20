@@ -125,7 +125,7 @@
     (/ sum (count coll))))
 
 (defn- aggregate-stddev [coll]
-  (#?(:cljs js/Math.sqrt :clj Math/sqrt) (aggregate-variance coll)))
+  (#?(:cljs js/Math.sqrt :default Math/sqrt) (aggregate-variance coll)))
 
 (defn- aggregate-min
   ([coll]

@@ -15,11 +15,11 @@
        [datascript.db Datom]
        [me.tonsky.persistent_sorted_set PersistentSortedSet])))
 
-(def ^:const ^:private marker-kw 0)
-(def ^:const ^:private marker-other 1)
-(def ^:const ^:private marker-inf 2)
-(def ^:const ^:private marker-minus-inf 3)
-(def ^:const ^:private marker-nan 4)
+(def #?(:cljd ^:private marker-kw :default ^:const ^:private marker-kw) 0)
+(def #?(:cljd ^:private marker-other :default ^:const ^:private marker-other) 1)
+(def #?(:cljd ^:private marker-inf :default ^:const ^:private marker-inf) 2)
+(def #?(:cljd ^:private marker-minus-inf :default ^:const ^:private marker-minus-inf) 3)
+(def #?(:cljd ^:private marker-nan :default ^:const ^:private marker-nan) 4)
 
 (defn- if-cljs [env then else]
   (if (:ns env) then else))
@@ -114,8 +114,10 @@
     []
     (loop [attrs (transient [(:a (first (:aevt db)))])]
       (let [attr      (nth attrs (dec (count attrs)))
-            left      (db/min-datom (db/datom db/emax attr nil))
-            right     (db/max-datom (db/datom db/emax nil nil))
+            left      #?(:cljd (db/min-datom (db/datom db/emax attr nil))
+                         :default (db/datom 0 attr nil))
+            right     #?(:cljd (db/max-datom (db/datom db/emax nil nil))
+                         :default (db/datom db/emax nil nil) )
             next-attr (:a (first #?(:cljd (subseq (:aevt db) > left <= right)
                                     :default (set/slice (:aevt db) left right attr-comparator))))]
         (if (some? next-attr)
