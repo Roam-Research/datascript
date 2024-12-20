@@ -46,30 +46,31 @@
          [a (multival->js v)]
          [a v]))))
 
-(deftype #?(:cljd #/(Entity K V) :clj Entity) [db eid touched cache]
-  #?@(:cljd
+(deftype #?(:cljd #/(Entity K V) :default Entity) [db eid touched cache]
+  #?@(
+      :cljd
       [^:mixin c/ToStringMixin
        ^:mixin c/EqualsEquivMixin
 
-       ; dart map
+; dart map
        ^:mixin #/(dart-coll/MapMixin K V)
        (entries [coll]
-         (let [^#/(Map K V) m @cache]
-           (.-entries m)))
+                (let [^#/(Map K V) m @cache]
+                  (.-entries m)))
        ("[]" [coll k]
         (-lookup coll k nil))
        ("[]=" [coll key val]
         (throw (UnsupportedError. "[]= not supported on Entity")))
        (remove [coll val]
-         (throw (UnsupportedError. "remove not supported on Entity")))
+               (throw (UnsupportedError. "remove not supported on Entity")))
        (clear [coll]
-         (throw (UnsupportedError. "clear not supported on Entity")))
+              (throw (UnsupportedError. "clear not supported on Entity")))
        (keys [coll]
-         (let [^#/(Map K V) m @cache]
-           (.-keys m)))
+             (let [^#/(Map K V) m @cache]
+               (.-keys m)))
        (values [coll]
-         (let [^#/(Map K V) m @cache]
-           (.-values m)))
+               (let [^#/(Map K V) m @cache]
+                 (.-values m)))
        (^#/(Entity RK RV) #/(cast RK RV) [coll]
         (new #/(Entity RK RV) db eid touched cache))
 
@@ -106,7 +107,7 @@
 
        cljd.core/IPrint
        (-print [_ sink]
-         (-print (assoc @cache :db/id eid) sink))]
+               (-print (assoc @cache :db/id eid) sink))]
 
       :cljs
       [Object
@@ -261,7 +262,7 @@
       (assoc acc a (entity-attr db a part))))
     {} (partition-by :a datoms)))
 
-(defn touch [^Entity? e]
+(defn touch [^#?(:cljd Entity? :default Entity) e]
   {:pre [(or (nil? e) (entity? e))]}
   (when (some? e)
     (when-not @(.-touched e)
