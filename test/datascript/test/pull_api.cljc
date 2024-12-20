@@ -186,62 +186,63 @@
 
 (deftest test-pull-limit
   (let [db (d/init-db
-             (concat
-               test-datoms
-               [(d/datom 4 :friend 5)
-                (d/datom 4 :friend 6)
-                (d/datom 4 :friend 7)
-                (d/datom 4 :friend 8)]
-               (for [idx (range 2000)]
-                 (d/datom 8 :aka (str "aka-" idx))))
-             test-schema)]
+            (concat
+             test-datoms
+             [(d/datom 4 :friend 5)
+              (d/datom 4 :friend 6)
+              (d/datom 4 :friend 7)
+              (d/datom 4 :friend 8)]
+             (for [idx (range 2000)]
+               (d/datom 8 :aka (str "aka-" idx))))
+            test-schema)]
 
-    (testing "cljd datoms count"
-      (is (= (+ 4 2000 (count test-datoms)) (count db)))
-      (let [MIN ^:unique (Object.)
-            MAX ^:unique (Object.)
-            cmp (fn [a b]
-                  (cond
-                    (identical? a b) 0
-                    (identical? a MIN) -1
-                    (identical? a MAX) 1
-                    (identical? b MIN) 1
-                    (identical? b MAX) -1
-                    :else (compare a b)))
-            cmp-eavt (fn [^db/Datom a ^db/Datom b]
-                       (let [r (cmp (.-e a) (.-e b))]
-                         (if-not (zero? r)
-                           r
-                           (let [r (cmp (.-a a) (.-a b))]
-                             (if-not (zero? r)
-                               r
-                               (cmp (.-v a) (.-v b)))))))
-            datoms (into (sorted-set-by cmp-eavt) (.-eavt db))
-            from (d/datom 8 :aka MIN)
-            to (d/datom 8 :aka MAX)]
-        (is (= 2000
-              (count (subseq datoms >= from <= to)))))
-      (let [cmp (fn [a b] ; fishy cmp behaving like Datascript
-                  (cond
-                    (nil? a) 0
-                    (nil? b) 0
-                    :else (compare a b)))
-            cmp-eavt (fn [^db/Datom a ^db/Datom b]
-                       (let [r (cmp (.-e a) (.-e b))]
-                         (if-not (zero? r)
-                           r
-                           (let [r (cmp (.-a a) (.-a b))]
-                             (if-not (zero? r)
-                               r
-                               (let [r (cmp (.-v a) (.-v b))]
-                                 (if-not (zero? r)
-                                   r
-                                   (cmp (.-tx a) (.-tx b)))))))))
-            datoms (into (sorted-set-by cmp-eavt) (.-eavt db))
-            from (d/datom 8 :aka nil db/tx0)
-            to (d/datom 8 :aka nil db/txmax)]
-        (is (= 1097
-              (count (subseq datoms >= from <= to))))))
+    #?(:cljd
+       (testing "cljd datoms count"
+         (is (= (+ 4 2000 (count test-datoms)) (count db)))
+         (let [MIN ^:unique (Object.)
+               MAX ^:unique (Object.)
+               cmp (fn [a b]
+                     (cond
+                       (identical? a b) 0
+                       (identical? a MIN) -1
+                       (identical? a MAX) 1
+                       (identical? b MIN) 1
+                       (identical? b MAX) -1
+                       :else (compare a b)))
+               cmp-eavt (fn [^db/Datom a ^db/Datom b]
+                          (let [r (cmp (.-e a) (.-e b))]
+                            (if-not (zero? r)
+                              r
+                              (let [r (cmp (.-a a) (.-a b))]
+                                (if-not (zero? r)
+                                  r
+                                  (cmp (.-v a) (.-v b)))))))
+               datoms (into (sorted-set-by cmp-eavt) (.-eavt db))
+               from (d/datom 8 :aka MIN)
+               to (d/datom 8 :aka MAX)]
+           (is (= 2000
+                  (count (subseq datoms >= from <= to)))))
+         (let [cmp (fn [a b] ; fishy cmp behaving like Datascript
+                     (cond
+                       (nil? a) 0
+                       (nil? b) 0
+                       :else (compare a b)))
+               cmp-eavt (fn [^db/Datom a ^db/Datom b]
+                          (let [r (cmp (.-e a) (.-e b))]
+                            (if-not (zero? r)
+                              r
+                              (let [r (cmp (.-a a) (.-a b))]
+                                (if-not (zero? r)
+                                  r
+                                  (let [r (cmp (.-v a) (.-v b))]
+                                    (if-not (zero? r)
+                                      r
+                                      (cmp (.-tx a) (.-tx b)))))))))
+               datoms (into (sorted-set-by cmp-eavt) (.-eavt db))
+               from (d/datom 8 :aka nil db/tx0)
+               to (d/datom 8 :aka nil db/txmax)]
+           (is (= 1097
+                  (count (subseq datoms >= from <= to)))))))
 
     (testing "Without an explicit limit, the default is 1000"
       (is (= 1000 (->> (d/pull db '[:aka] 8) :aka count))))

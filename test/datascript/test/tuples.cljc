@@ -3,7 +3,7 @@
    #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
       :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-   [cljd.core :refer [ExceptionInfo]]
+   #?(:cljd [cljd.core :refer [ExceptionInfo]])
    [datascript.core :as d]
    [datascript.test.core :as tdc])
   (:import #?(:cljd nil :clj [clojure.lang ExceptionInfo])))

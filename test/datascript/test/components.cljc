@@ -1,22 +1,12 @@
 (ns datascript.test.components
   (:require
-    [#?(:cljd cljd.reader :cljs cljs.reader :clj clojure.edn) :as edn]
-    #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
-       :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
-       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-    [datascript.core :as d]
-    [datascript.db :as db]
-    [datascript.test.core :as tdc]))
-
-#?(:cljd
-   (defmacro thrown-msg? [expected-msg & body]
-     `(try
-        ~@body
-        false
-        (catch Object e#
-          (or (.contains (or (.-message (identity e#)) (.toString e#)) ~expected-msg)
-            ; rethrow for now to have a telling exception
-            (throw e#))))))
+   [#?(:cljd cljd.reader :cljs cljs.reader :clj clojure.edn) :as edn]
+   #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
+      :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
+      :clj  [clojure.test :as t :refer        [is are deftest testing]])
+   [datascript.core :as d]
+   [datascript.db :as db]
+   [datascript.test.core :as tdc :refer [#?(:cljd thrown-msg?)]]))
 
 (t/use-fixtures :once tdc/no-namespace-maps)
 
@@ -25,16 +15,16 @@
 
 (deftest test-components
   (is (thrown-msg? "Bad attribute specification for :profile: {:db/isComponent true} should also have {:db/valueType :db.type/ref}"
-        (d/empty-db {:profile {:db/isComponent true}})))
+                   (d/empty-db {:profile {:db/isComponent true}})))
   (is (thrown-msg? "Bad attribute specification for {:profile {:db/isComponent \"aaa\"}}, expected one of #{true false}"
-        (d/empty-db {:profile {:db/isComponent "aaa" :db/valueType :db.type/ref}})))
+                   (d/empty-db {:profile {:db/isComponent "aaa" :db/valueType :db.type/ref}})))
 
   (let [db (d/db-with
-             (d/empty-db {:profile {:db/valueType   :db.type/ref
-                                    :db/isComponent true}})
-             [{:db/id 1 :name "Ivan" :profile 3}
-              {:db/id 3 :email "@3"}
-              {:db/id 4 :email "@4"}])
+            (d/empty-db {:profile {:db/valueType   :db.type/ref
+                                   :db/isComponent true}})
+            [{:db/id 1 :name "Ivan" :profile 3}
+             {:db/id 3 :email "@3"}
+             {:db/id 4 :email "@4"}])
         visible #(edn/read-string (pr-str %))
         touched #(visible (d/touch %))]
 

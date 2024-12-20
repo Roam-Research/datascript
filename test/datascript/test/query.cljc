@@ -3,13 +3,13 @@
    #?(:cljd  [cljd.test :as t :refer        [is are deftest testing]]
       :cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-    [datascript.core :as d]
-    [datascript.db :as db]
-    [datascript.test.core :as tdc]
-    [cljd.core :refer [ExceptionInfo]])
+   [datascript.core :as d]
+   [datascript.db :as db]
+   [datascript.test.core :as tdc]
+   #?(:cljd [cljd.core :refer [ExceptionInfo]]))
   #?(:cljd nil
      :clj
-       (:import [clojure.lang ExceptionInfo])))
+     (:import [clojure.lang ExceptionInfo])))
 
 #?(:cljd
    (defmacro thrown-msg? [expected-msg & body]

@@ -48,7 +48,7 @@
 ))
 
 (def ->Fn
-  #?(:cljd dp/->FunctionCall :default dp/->Function))
+  #?(:cljd dp/->FunctionCall :default dp/->FunctionCall))
 
 (deftest test-fn
   (are [clause res] (= (dp/parse-clause clause) res)

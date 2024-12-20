@@ -16,24 +16,34 @@
 #?(:cljs
    (enable-console-print!))
 
+#?(:cljd
+   (defmacro thrown-msg? [expected-msg & body]
+     `(try
+        ~@body
+        false
+        (catch Object e#
+          (or (.contains (or (.-message (identity e#)) (.toString e#)) ~expected-msg)
+              ;; rethrow for now to have a telling exception
+              (throw e#))))))
+
 ;; Added special case for printing ex-data of ExceptionInfo
 #?(:cljs
-  (defmethod t/report [::t/default :error] [m]
-    (t/inc-report-counter! :error)
-    (println "\nERROR in" (t/testing-vars-str m))
-    (when (seq (:testing-contexts (t/get-current-env)))
-      (println (t/testing-contexts-str)))
-    (when-let [message (:message m)] (println message))
-    (println "expected:" (pr-str (:expected m)))
-    (print "  actual: ")
-    (let [actual (:actual m)]
-      (cond
-        (instance? ExceptionInfo actual)
-          (println (.-stack actual) "\n" (pr-str (ex-data actual)))
-        (instance? js/Error actual)
-          (println (.-stack actual))
-        :else
-          (prn actual)))))
+   (defmethod t/report [::t/default :error] [m]
+     (t/inc-report-counter! :error)
+     (println "\nERROR in" (t/testing-vars-str m))
+     (when (seq (:testing-contexts (t/get-current-env)))
+       (println (t/testing-contexts-str)))
+     (when-let [message (:message m)] (println message))
+     (println "expected:" (pr-str (:expected m)))
+     (print "  actual: ")
+     (let [actual (:actual m)]
+       (cond
+         (instance? ExceptionInfo actual)
+         (println (.-stack actual) "\n" (pr-str (ex-data actual)))
+         (instance? js/Error actual)
+         (println (.-stack actual))
+         :else
+         (prn actual)))))
 
 #?(:cljs (def test-summary (atom nil)))
 #?(:cljs (defmethod t/report [::t/default :end-run-tests] [m]
