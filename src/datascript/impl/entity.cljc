@@ -52,10 +52,12 @@
       [^:mixin c/ToStringMixin
        ^:mixin c/EqualsEquivMixin
 
-; dart map
-       ^:mixin #/(dart-coll/MapMixin K V)
+       ;; dart map
+       ;; ^:mixin #/(dart-coll/MapMixin K V)
+       ^:mixin ^{:type-params [K V]} dart-coll/MapMixin
        (entries [coll]
-                (let [^#/(Map K V) m @cache]
+                ;; ^#/(Map K V)
+                (let [^^{:type-params [K V]} Map m @cache]
                   (.-entries m)))
        ("[]" [coll k]
         (-lookup coll k nil))
@@ -66,12 +68,14 @@
        (clear [coll]
               (throw (UnsupportedError. "clear not supported on Entity")))
        (keys [coll]
-             (let [^#/(Map K V) m @cache]
+             (let [^^{:type-params [K V]} Map m @cache]
                (.-keys m)))
        (values [coll]
-               (let [^#/(Map K V) m @cache]
+               (let [^^{:type-params [K V]} Map m @cache]
                  (.-values m)))
-       (^#/(Entity RK RV) #/(cast RK RV) [coll]
+       ;; (^#/(Entity RK RV) #/(cast RK RV) [coll]
+       ;;  (new #/(Entity RK RV) db eid touched cache))
+       (^^{:type-params [RK RV]} Entity ^{:type-params [RK RV]} cast [coll]
         (new #/(Entity RK RV) db eid touched cache))
 
        cljd.core/IEquiv
