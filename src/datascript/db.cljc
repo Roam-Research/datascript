@@ -6,9 +6,9 @@
    [clojure.data]
    #?(:cljd nil :clj [datascript.inline :refer [update]])
    [datascript.lru :as lru]
-   #?@(:cljd ()
-       :default [[me.tonsky.persistent-sorted-set :as set]
-                 [me.tonsky.persistent-sorted-set.arrays :as arrays]]))
+   [me.tonsky.persistent-sorted-set :as set]
+   [me.tonsky.persistent-sorted-set.arrays :as arrays]
+   )
   #?(:cljd nil :clj (:import clojure.lang.IFn$OOL))
   #?(:cljs (:require-macros [datascript.db :refer [case-tree combine-cmp cond+ declare+ defn+ defcomp defrecord-updatable int-compare raise validate-attr validate-val]]))
   (:refer-clojure :exclude [seqable? #?(:cljd nil :clj update)]))
@@ -849,7 +849,7 @@
                         :clj  (vpred v)
                         :cljs #(= v %))
           multival?  (contains? (-attrs-by db :db.cardinality/many) a)
-          slice #?(:cljd set-slice :default set/slice)]
+          slice set/slice]
       (case-tree [e a (some? v) tx]
         [(slice eavt (datom e a v tx) (datom e a v tx))                   ;; e a v tx
          (slice eavt (datom e a v tx0) (datom e a v txmax))               ;; e a v _
@@ -886,26 +886,26 @@
   IIndexAccess
   (-datoms [db index c0 c1 c2 c3]
     (validate-indexed db index c0 c1 c2 c3)
-    (#?(:cljd set-slice :default set/slice) (get db index)
+    (set/slice (get db index)
       (components->pattern db index c0 c1 c2 c3 e0 tx0)
       (components->pattern db index c0 c1 c2 c3 emax txmax)))
 
   (-seek-datoms [db index c0 c1 c2 c3]
     (validate-indexed db index c0 c1 c2 c3)
-    (#?(:cljd set-slice :default set/slice) (get db index)
+    (set/slice (get db index)
       (components->pattern db index c0 c1 c2 c3 e0 tx0)
       (datom emax nil nil txmax)))
 
   (-rseek-datoms [db index c0 c1 c2 c3]
     (validate-indexed db index c0 c1 c2 c3)
-    (#?(:cljd set-rslice :default set/rslice) (get db index)
+    (set/rslice (get db index)
       (components->pattern db index c0 c1 c2 c3 emax txmax)
       (datom e0 nil nil tx0)))
 
   (-index-range [db attr start end]
     (validate-indexed db :avet attr nil nil nil)
     (validate-attr attr (list '-index-range 'db attr start end))
-    (#?(:cljd set-slice :default set/slice) (.-avet db)
+    (set/slice (.-avet db)
       (resolve-datom db nil attr start nil e0 tx0)
       (resolve-datom db nil attr end nil emax txmax)))
 
@@ -1127,26 +1127,19 @@
   {:pre [(or (nil? schema) (map? schema))]}
   (validate-schema schema)
   (map->DB
-    {:schema        schema
-     :rschema       (rschema (merge implicit-schema schema))
-     :eavt          #?(:cljd (sorted-set-by cmp-datoms-eavt)
-                       :default (set/sorted-set* (assoc opts :cmp cmp-datoms-eavt)))
-     :aevt          #?(:cljd
-                       (sorted-set-by cmp-datoms-aevt)
-                       :default
-                       (set/sorted-set* (assoc opts :cmp cmp-datoms-aevt)))
-     :avet          #?(:cljd
-                       (sorted-set-by cmp-datoms-avet)
-                       :default
-                       (set/sorted-set* (assoc opts :cmp cmp-datoms-avet)))
-     :max-eid       e0
-     :max-tx        tx0
-     :pull-patterns (lru/cache 100)
-     :pull-attrs    (lru/cache 100)
-     :hash          (atom 0)}))
+   {:schema        schema
+    :rschema       (rschema (merge implicit-schema schema))
+    :eavt          (set/sorted-set* (assoc opts :cmp cmp-datoms-eavt))
+    :aevt          (set/sorted-set* (assoc opts :cmp cmp-datoms-aevt))
+    :avet          (set/sorted-set* (assoc opts :cmp cmp-datoms-avet))
+    :max-eid       e0
+    :max-tx        tx0
+    :pull-patterns (lru/cache 100)
+    :pull-attrs    (lru/cache 100)
+    :hash          (atom 0)}))
 
 (defn- init-max-eid [eavt]
-  (or (-> (#?(:cljd set-rslice :default set/rslice) eavt (datom (dec tx0) nil nil txmax) (datom e0 nil nil tx0))
+  (or (-> (set/rslice eavt (datom (dec tx0) nil nil txmax) (datom e0 nil nil tx0))
         (first)
         (:e))
     e0))
@@ -1160,11 +1153,12 @@
   (validate-schema schema)
   (let [rschema     (rschema (merge implicit-schema schema))
         indexed     (:db/index rschema)
-        #?@(:cljd
-            [eavt        (into (sorted-set-by cmp-datoms-eavt) datoms)
-             aevt        (into (sorted-set-by cmp-datoms-aevt) datoms)
-             avet-datoms (filter (fn [^Datom d] (contains? indexed (.-a d))) datoms)
-             avet        (into (sorted-set-by cmp-datoms-avet) avet-datoms)]
+        #?@(
+            ;; :cljd
+            ;; [eavt        (into (sorted-set-by cmp-datoms-eavt) datoms)
+            ;;  aevt        (into (sorted-set-by cmp-datoms-aevt) datoms)
+            ;;  avet-datoms (filter (fn [^Datom d] (contains? indexed (.-a d))) datoms)
+            ;;  avet        (into (sorted-set-by cmp-datoms-avet) avet-datoms)]
             :default
             [arr         (cond-> datoms
                            (not (arrays/array? datoms)) (arrays/into-array))

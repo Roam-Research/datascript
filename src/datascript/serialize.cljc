@@ -1,19 +1,19 @@
 (ns datascript.serialize
   (:refer-clojure :exclude [amap array?])
   (:require
-    [#?(:cljd cljd.reader :default clojure.edn) :as edn]
-    [clojure.string :as str]
-    [datascript.db :as db #?(:cljd :refer :cljs :refer-macros :clj :refer) [raise cond+] #?@(:cljs [:refer [Datom]] :cljd [:refer [Datom]])]
-    [datascript.lru :as lru]
-    [datascript.storage :as storage]
-    #?(:cljd nil :default [me.tonsky.persistent-sorted-set :as set])
-    #?(:cljd nil :default [me.tonsky.persistent-sorted-set.arrays :as arrays]))
+   [#?(:cljd cljd.reader :default clojure.edn) :as edn]
+   [clojure.string :as str]
+   [datascript.db :as db #?(:cljd :refer :cljs :refer-macros :clj :refer) [raise cond+] #?@(:cljs [:refer [Datom]] :cljd [:refer [Datom]])]
+   [datascript.lru :as lru]
+   [datascript.storage :as storage]
+   [me.tonsky.persistent-sorted-set :as set]
+   [me.tonsky.persistent-sorted-set.arrays :as arrays])
   #?(:cljs (:require-macros [datascript.serialize :refer [array dict]]))
   #?(:cljd nil
      :clj
      (:import
-       [datascript.db Datom]
-       [me.tonsky.persistent_sorted_set PersistentSortedSet])))
+      [datascript.db Datom]
+      [me.tonsky.persistent_sorted_set PersistentSortedSet])))
 
 (def #?(:cljd ^:private marker-kw :default ^:const ^:private marker-kw) 0)
 (def #?(:cljd ^:private marker-other :default ^:const ^:private marker-other) 1)
@@ -270,12 +270,9 @@
                     (select-keys opts [:branching-factor :ref-type]))]
      (db/restore-db
        {:schema  schema
-        :eavt    #?(:cljd (into (sorted-set-by db/cmp-datoms-eavt) eavt)
-                    :default (set/from-sorted-array db/cmp-datoms-eavt eavt (arrays/alength eavt) settings))
-        :aevt    #?(:cljd (into (sorted-set-by db/cmp-datoms-aevt) aevt)
-                    :default (set/from-sorted-array db/cmp-datoms-aevt aevt (arrays/alength aevt) settings))
-        :avet    #?(:cljd (into (sorted-set-by db/cmp-datoms-avet) eavt)
-                    :default
-                    (set/from-sorted-array db/cmp-datoms-avet avet (arrays/alength avet) settings))
+        :eavt    (set/from-sorted-array db/cmp-datoms-eavt eavt (arrays/alength eavt) settings)
+        :aevt    (set/from-sorted-array db/cmp-datoms-aevt aevt (arrays/alength aevt) settings)
+        :avet    (set/from-sorted-array db/cmp-datoms-avet avet (arrays/alength avet) settings)
         :max-eid (dict-get from "max-eid")
         :max-tx  (dict-get from "max-tx")}))))
+
