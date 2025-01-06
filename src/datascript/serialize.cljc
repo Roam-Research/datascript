@@ -71,6 +71,12 @@
      :clj  (instance? java.util.List a)
      :cljs (or (cljs.core/array? a) (vector? a))))
 
+#?(:cljd
+   (defn- amap-in-place
+     [f xs]
+     (reduce (fn [idx x] (aset xs idx (f x)) (inc idx)) 0 xs)
+     xs))
+
 (defn- amap [f xs]
   #?(:cljd
      (let [arr (.filled #/(List dynamic) (count xs) nil)]
@@ -240,7 +246,10 @@
          attrs    (->> (dict-get from "attrs") (mapv thaw-kw))
          keywords (->> (dict-get from "keywords") (mapv thaw-kw))
          eavt     (->> (dict-get from "eavt")
-                    (amap (fn [arr]
+                       ;; TODO: why amap and then into array again??
+                       ;; possibly for clojure? can't see why cljs would benefit
+                       (#?(:cljd amap-in-place
+                           :default amap) (fn [arr]
                             (let [e  (array-get arr 0)
                                   a  (nth attrs (array-get arr 1))
                                   v  (array-get arr 2)
