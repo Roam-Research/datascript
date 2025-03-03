@@ -679,7 +679,7 @@
 ;; query
 
 ;; q* prefix because of https://dev.clojure.org/jira/browse/CLJS-2237
-(deftrecord Query [qfind qwith qreturn-map qin qwhere])
+(deftrecord Query [qfind qwith qreturn-map qin qwhere qtimeout])
 
 (defn query->map [query]
   (loop [parsed {}, key nil, qs query]
@@ -768,6 +768,14 @@
       (raise "Missing rules var '%' in :in"
              {:error :parser/query, :form form}))))
 
+(defn parse-timeout [t]
+  (cond
+    (nil? t)        nil
+    (pos-int? t)    t
+    (sequential? t) (recur (first t))
+    :else           (raise "Unsupported timeout format"
+                           {:error :parser/query :form t})))
+
 (defn parse-query [q]
   (let [qm  (cond
               (map? q) q
@@ -784,6 +792,7 @@
                               (parse-return-map :strs (:strs qm)))
                :qin    (parse-in
                          (or (:in qm) (default-in qwhere)))
-               :qwhere qwhere})]
+               :qwhere qwhere
+               :qtimeout (parse-timeout (:timeout qm))})]
     (validate-query res q qm)
     res))

@@ -12,7 +12,8 @@
    [datascript.parser :as dp #?@(:cljs [:refer [BindColl BindIgnore BindScalar BindTuple Constant
                                                 FindColl FindRel FindScalar FindTuple PlainSymbol
                                                 RulesVar SrcVar Variable]])]
-   [datascript.pull-api :as dpa])
+   [datascript.pull-api :as dpa]
+   [datascript.timeout :as timeout])
   #?(:clj
      (:import
       [clojure.lang ILookup LazilyPersistentVector]
@@ -39,6 +40,9 @@
 ;; or [ (Datom. 2 "Oleg" 1 55) ... ]
 (defrecord Relation [attrs tuples])
 
+(defn relation! [attrs tuples]
+  (timeout/assert-time-left)
+  (Relation. attrs tuples))
 
 ;; Utilities
 
@@ -130,7 +134,7 @@
         {attrs-b :attrs, tuples-b :tuples} b]
     (cond
       (= attrs-a attrs-b)
-      (Relation. attrs-a (into (vec tuples-a) tuples-b))
+      (relation! attrs-a (into (vec tuples-a) tuples-b))
 
       (not (same-keys? attrs-a attrs-b))
       (raise "Can’t sum relations with different attrs: " attrs-a " and " attrs-b
@@ -149,22 +153,22 @@
                             (conj! acc tuple')))
                         (transient (vec tuples-a))
                         tuples-b))]
-        (Relation. attrs-a tuples'))
+        (relation! attrs-a tuples'))
 
       :else
       (let [all-attrs (zipmap (keys (merge attrs-a attrs-b)) (range))]
-        (-> (Relation. all-attrs [])
+        (-> (relation! all-attrs [])
             (sum-rel a)
             (sum-rel b))))))
 
 (defn prod-rel
-  ([] (Relation. {} [(da/make-array 0)]))
+  ([] (relation! {} [(da/make-array 0)]))
   ([rel1 rel2]
     (let [attrs1 (keys (:attrs rel1))
           attrs2 (keys (:attrs rel2))
           idxs1  (to-array (map (:attrs rel1) attrs1))
           idxs2  (to-array (map (:attrs rel2) attrs2))]
-      (Relation.
+      (relation!
         (zipmap (concat attrs1 attrs2) (range))
         (persistent!
           (reduce
@@ -185,7 +189,7 @@
 (defn empty-rel [binding]
   (let [vars (->> (dp/collect-vars-distinct binding)
                (map :symbol))]
-    (Relation. (zipmap vars (range)) [])))
+    (relation! (zipmap vars (range)) [])))
 
 (defprotocol IBinding
   (in->rel [binding value]))
@@ -197,7 +201,7 @@
   
   BindScalar
   (in->rel [binding value]
-    (Relation. {(get-in binding [:variable :symbol]) 0} [(into-array [value])]))
+    (relation! {(get-in binding [:variable :symbol]) 0} [(into-array [value])]))
   
   BindColl
   (in->rel [binding coll]
@@ -364,7 +368,7 @@
                                      acc)))
                                (transient []) )
                        (persistent!))]
-    (Relation. (zipmap (concat keep-attrs1 keep-attrs2) (range))
+    (relation! (zipmap (concat keep-attrs1 keep-attrs2) (range))
                new-tuples)))
 
 (defn subtract-rel [a b]
@@ -384,7 +388,7 @@
         attr->prop     (->> (map vector pattern ["e" "a" "v" "tx"])
                             (filter (fn [[s _]] (free-var? s)))
                             (into {}))]
-    (Relation. attr->prop datoms)))
+    (relation! attr->prop datoms)))
 
 (defn matches-pattern? [pattern tuple]
   (loop [tuple   tuple
@@ -402,7 +406,7 @@
         attr->idx  (->> (map vector pattern (range))
                         (filter (fn [[s _]] (free-var? s)))
                         (into {}))]
-    (Relation. attr->idx (mapv to-array data)))) ;; FIXME to-array
+    (relation! attr->idx (mapv to-array data)))) ;; FIXME to-array
 
 (defn normalize-pattern-clause [clause]
   (if (source? (first clause))
@@ -510,7 +514,7 @@
                         rels     (for [tuple (:tuples production)
                                        :let  [val (tuple-fn tuple)]
                                        :when (not (nil? val))]
-                                   (prod-rel (Relation. (:attrs production) [tuple])
+                                   (prod-rel (relation! (:attrs production) [tuple])
                                              (in->rel binding val)))]
                      (if (empty? rels)
                        (prod-rel production (empty-rel binding))
@@ -602,7 +606,7 @@
                         :clauses        [clause]
                         :used-args      {}
                         :pending-guards {}})
-           rel   (Relation. final-attrs-map [])]
+           rel   (relation! final-attrs-map [])]
       (if-some [frame (first stack)]
         (let [[clauses [rule-clause & next-clauses]] (split-with #(not (rule? context %)) (:clauses frame))]
           (if (nil? rule-clause)
@@ -610,7 +614,7 @@
             ;; no rules -> expand, collect, sum
             (let [context (solve (:prefix-context frame) clauses)
                   tuples  (-collect context final-attrs)
-                  new-rel (Relation. final-attrs-map tuples)]
+                  new-rel (relation! final-attrs-map tuples)]
               (recur (next stack) (sum-rel rel new-rel)))
 
             ;; has rule -> add guards -> check if dead -> expand rule -> push to stack, recur
@@ -950,28 +954,29 @@
         tuple))))
 
 (defn q [q & inputs]
-  (let [parsed-q      (lru/-get *query-cache* q #(dp/parse-query q))
-        find          (:qfind parsed-q)
-        find-elements (dp/find-elements find)
-        find-vars     (dp/find-vars find)
-        result-arity  (count find-elements)
-        with          (:qwith parsed-q)
-        ;; TODO utilize parser
-        all-vars      (concat find-vars (map :symbol with))
-        q             (cond-> q
-                        (sequential? q) dp/query->map)
-        wheres        (:where q)
-        context       (-> (Context. [] {} {})
-                        (resolve-ins (:qin parsed-q) inputs))
-        resultset     (-> context
-                        (-q wheres)
-                        (collect all-vars))]
-    (cond->> resultset
-      (:with q)
-        (mapv #(vec (subvec % 0 result-arity)))
-      (some dp/aggregate? find-elements)
-        (aggregate find-elements context)
-      (some dp/pull? find-elements)
-        (pull find-elements context)
-      true
-        (-post-process find (:qreturn-map parsed-q)))))
+  (let [parsed-q      (lru/-get *query-cache* q #(dp/parse-query q))]
+    (binding [timeout/*deadline* (timeout/to-deadline (:qtimeout parsed-q))]
+      (let [find          (:qfind parsed-q)
+            find-elements (dp/find-elements find)
+            find-vars     (dp/find-vars find)
+            result-arity  (count find-elements)
+            with          (:qwith parsed-q)
+            ;; TODO utilize parser
+            all-vars      (concat find-vars (map :symbol with))
+            q             (cond-> q
+                            (sequential? q) dp/query->map)
+            wheres        (:where q)
+            context       (-> (Context. [] {} {})
+                              (resolve-ins (:qin parsed-q) inputs))
+            resultset     (-> context
+                              (-q wheres)
+                              (collect all-vars))]
+        (cond->> resultset
+          (:with q)
+          (mapv #(vec (subvec % 0 result-arity)))
+          (some dp/aggregate? find-elements)
+          (aggregate find-elements context)
+          (some dp/pull? find-elements)
+          (pull find-elements context)
+          true
+          (-post-process find (:qreturn-map parsed-q)))))))
